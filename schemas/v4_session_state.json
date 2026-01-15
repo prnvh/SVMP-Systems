@@ -1,8 +1,24 @@
 {
-  "_id": "ObjectId('696552a7e849104a1b0b9f6b8')",
+  "collection": "session_state",
+  "version": "5.0",
+  "description": "Stateful session management with sliding-window debounce and mutex locking.",
+  "document_structure": {
+    "userId": "string (Phone number or unique identifier)",
+    "clientId": "string (Integration channel ID)",
+    "tenantId": "string (Business organization ID)",
+    "status": "string (Current state: 'open' or 'closed')",
+    "debounceExpiresAt": "ISO-8601 Timestamp (Current Time + 15s for message aggregation)",
+    "messages": "array (List of incoming user messages in the current window)",
+    "processing": "boolean (Mutex Lock: true when Workflow B is active)"
+  },
+
+  
+  "example_document": 
+  {
+  "_id": "696552a7e849104a1b0b9f6b8",
   "userId": "9740484194",
-  "clientId": "whatsapp",
-  "tenantId": "companyname",
+  "clientId": "c_001",
+  "tenantId": "Niyomilan",
   "status": "open",
   "createdAt": "2026-01-12T19:59:35.439Z",
   "updatedAt": "2026-01-12T19:59:48.143Z",
