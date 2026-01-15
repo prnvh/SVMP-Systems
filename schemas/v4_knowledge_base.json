@@ -1,0 +1,28 @@
+{
+  "collection": "knowledge_base",
+  "version": "4.0 (v3.0 Data Migrated)",
+  "description": "Verified factual clusters used for the 0.75 similarity gate.",
+  "document_structure": {
+    "_id": "string (e.g., faq_002)",
+    "tenantId": "string (The organization ID, e.g., Niyomilan)",
+    "domainId": "string (The cluster ID, e.g., sales or support)",
+    "question": "string (The canonical user query)",
+    "answer": "string (The verified, grounded response)",
+    "tags": ["array of strings for secondary filtering"],
+    "createdAt": "ISO-8601 Timestamp",
+    "updatedAt": "ISO-8601 Timestamp"
+  },
+
+  
+  "example_document":
+  {
+    "_id": "faq_002",
+    "tenantId": "Niyomilan",
+    "domainId": "sales",
+    "question": "What is our sales funnel?",
+    "answer": "Our sales funnel guides potential customers from initial awareness to...",
+    "tags": ["sales", "funnel"],
+    "createdAt": "2026-01-13T00:00:00Z",
+    "updatedAt": "2026-01-13T00:00:00Z"
+  }
+}
