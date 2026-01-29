@@ -1,42 +1,121 @@
-# SVMP: Semantic Vector Mapping Protocol
-Current README reflects v3.0. v4.0 documentation will be published with the upcoming whitepaper.
+# SVMP Systems v4.1
+### State-Aware, Multi-Tenant Governance Engine for LLM-Based Systems
 
+SVMP Systems is a reference implementation of a state-aware orchestration layer designed to address reliability failures in LLM-driven applications.
+Rather than focusing on prompt optimization or model tuning, the system addresses failure at the systems and governance layer.
 
-**Version:** 3.0 (Pilot Baseline) | **Status:** v4.0 (Production-Grade Transition)  
-**Founding Team:** Pranav H (Lead Architect), Samarth D Magi (Product Lead), Shravan Kumar (Operations Lead) 
-
-## 01 | Executive Abstract
-The Semantic Vector Mapping Protocol (SVMP) was developed to solve the **"Reliability Gap"** in Large Language Model (LLM) deployments. While generative AI excels at fluid conversation, it natively lacks the deterministic guardrails required for high-stakes service environments. 
-
-SVMP introduces a proprietary, threshold-based governance layer designed to eliminate hallucination and ensure data integrity at scale.
-
-## 02 | Core Governance (v3.0 Baseline)
-The v3.0 architecture establishes the "Governance Gate," a mathematical validator that enforces a binary pass/fail state on LLM outputs.
-
-- **The Threshold (≥0.75):** Every query is converted into a mathematical vector and compared against a verified knowledge base in MongoDB.
-- **Deterministic Logic:** If the Semantic Similarity Score is ≥0.75, a factual match is retrieved.
-- **Escalation Path:** If the score is <0.75, the automation "freezes" and triggers a human handoff via WhatsApp or Slack.
-- **Performance:** In pilot testing, this architecture achieved a **0% hallucination rate** by prioritizing certainty over guessing.
-
-## 03 | Evolution to v4.0 (Session-Level Truth)
-Building on the v3.0 baseline, v4.0 transitions from processing single messages to managing **stateful sessions**.
-
-### The Identity Model
-Every session is governed by a unique Identity Tuple to ensure strict multi-tenant isolation:
-- `tenantId`: Business/Org boundary.
-- `clientId`: Channel/Integration boundary.
-- `userId`: End-user identity.
-- `status`: Current session state.
-
-### Decoupled Orchestration (n8n + MongoDB)
-1. **Workflow A (The Ingestor):** A high-frequency webhook that normalizes payloads and resets the **Soft Debounce** timer.
-2. **Workflow B (The Processor):** Runs on a 20s cron; utilizes a **Mutex Lock** (`processing=true`) to prevent race conditions and ensure "Exactly-Once" processing.
-3. **Workflow C (The Janitor):** Nightly maintenance that archives logs to `governance_logs` and closes inactive sessions.
-
-## 04 | Roadmap & Testing
-- **v3.0 Validation:** Currently undergoing a **3,000+ sample adversarial stress-test** to validate the ≥0.75 threshold.
-- **v4.0 TBD:** Finalizing Intent Matching, Governance Log automation, and productization.
-- **Social Impact:** We provide the v3.0 framework to non-profit organizations for free, stress-testing our logic in high-stakes environments where information is a lifeline.
+This repository documents the v4.1 architecture, which introduces asynchronous state management, strict multi-tenant isolation, and deterministic failure handling for high-velocity conversational environments.
 
 ---
-*Authored by the SVMP Founding Trio. 2026 SVMP.* [cite: 11, 21]
+
+## Problem Statement
+
+Most failures in LLM deployments are not caused by incorrect model outputs, but by loss of contextual integrity under concurrency.
+
+Common failure modes include:
+- Fragmented user messages (“multi-burst” behavior)
+- Multiple responses to partial intent
+- Race conditions under parallel processing
+- Hallucinated responses under low confidence
+- Cross-tenant data exposure in shared systems
+
+SVMP addresses these issues structurally by treating LLMs as probabilistic components that must be governed, not trusted implicitly.
+
+---
+
+## Core Design Invariants
+
+SVMP v4.1 is built around the following non-negotiable constraints:
+
+- **State-first architecture**  
+  Conversational state is persisted and resolved asynchronously.
+
+- **Exactly-once processing**  
+  No session can be processed more than once.
+
+- **Soft debounce aggregation**  
+  Fragmented user messages are aggregated into a single “thought unit.”
+
+- **Hard multi-tenant isolation**  
+  Enforced at the database level via an identity tuple.
+
+- **Similarity-gated responses**  
+  Automated responses are generated only when confidence ≥ 0.75.
+
+- **Default-to-human escalation**  
+  Uncertainty results in escalation, not synthesis.
+
+---
+
+## High-Level Architecture
+
+SVMP uses an asynchronous tri-workflow engine:
+
+1. **Ingestor**  
+   High-throughput listener responsible for anchoring incoming events into a governed session state.
+   It aggregates messages, applies a soft debounce window, and prepares sessions for deterministic processing.
+
+2. **Processor**  
+   Resolution engine triggered by time-based eligibility.
+   It acquires an atomic lock, aggregates context, bifurcates intent, applies similarity governance, and determines resolution or escalation.
+
+3. **Lifecycle Management**  
+   Session cleanup and long term audit preservation, ensuring operational hygiene without compromising forensic traceability.
+
+LLM execution is intentionally decoupled from ingestion to prevent latency-induced state corruption.
+
+---
+
+## Multi-Tenant Safety Model
+
+Every operation in the system is scoped by an immutable Identity Tuple:
+
+(tenantId, clientId, userId)
+
+This tuple is required for:
+- Session lookup
+- Knowledge base retrieval
+- Governance logging
+
+Isolation is enforced at the database query level, not through prompt conditioning.
+Cross-tenant data access is structurally impossible by construction.
+
+---
+
+## Governance and Reliability
+
+SVMP treats every automated decision as a forensic event.
+
+- All decisions are logged to an append-only governance ledger
+- Logs capture input state, similarity scores, resolution path, and outcome
+- Session data may expire; governance records do not
+
+The system explicitly trades automation coverage for correctness, prioritizing reliability in high-stakes informational contexts.
+
+---
+
+## Repository Structure
+
+This repository focuses on architecture, invariants, and failure containment rather than UI or deployment tooling.
+
+- ARCHITECTURE.md — system-level design and concurrency model
+- FAILURE_CASES.md — known failure modes and structural mitigations
+- workflows/ — ingestion and processing workflow specifications
+- docs/ — governance, multi-tenancy, and intent resolution design
+- schemas/ — session, governance, and knowledge base data models
+
+The repository is intended to be read as a systems specification, not a product demo.
+
+---
+
+## Project Status
+
+SVMP v4.1 represents a production-oriented architecture validated through iterative design and adversarial reasoning.
+Ongoing work focuses on performance optimization, distributed execution, and formal verification of system invariants.
+
+---
+
+## Author
+
+Pranav H  
+Lead Architect — SVMP Systems
