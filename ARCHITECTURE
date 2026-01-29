@@ -1,0 +1,221 @@
+# SVMP v4.1 - Architecture
+
+## Purpose of This Document
+
+This document explains **why SVMP v4.1 is architected the way it is**, not just what the system does. It is intended to make the design tradeoffs, invariants, and failure-model assumptions explicit. SVMP is treated as a **governance engine**, not an application layer.
+
+---
+
+## 1. Design Premise
+
+Most LLM systems fail in production not because the model is weak, but because the surrounding system:
+
+* Loses conversational state under real world message bursts
+* Responds multiple times due to race conditions
+* Leaks context across tenants or domains
+* Hallucinates transactional facts instead of querying a source of truth
+
+SVMP v4.1 is designed to **constrain LLM behavior through architecture**, not prompt engineering.
+
+The core principle:
+
+> *LLMs are non-deterministic components and must be treated as untrusted workers inside a deterministic system.*
+
+---
+
+## 2. Architectural Invariants (Non-Negotiable)
+
+The following invariants hold across all workflows and future versions:
+
+1. **Identity is mandatory**
+   Every operation is scoped by an immutable Identity Tuple:
+   `(tenantId, clientId, userId)`
+
+2. **State precedes generation**
+   No LLM call occurs without an explicit, persisted session state.
+
+3. **Exactly-once processing**
+   A session can only be processed by one executor at a time.
+
+4. **Transactional truth is external**
+   If an intent requires real-world data (orders, payments, CRM), the system must query an API or escalate.
+
+5. **Uncertainty defaults to silence**
+   If similarity < 0.75 or execution fails, automation freezes and escalates to a human.
+
+These invariants are enforced structurally, not heuristically.
+
+---
+
+## 3. Why a Tri-Workflow Engine
+
+SVMP is intentionally split into three independent workflows to decouple concerns that scale differently.
+
+### Workflow A — Ingestor
+
+**Primary constraint:** throughput
+
+* Accepts inbound events via webhook
+* Computes Identity Tuple immediately
+* Performs atomic upsert into `session_state`
+* Aggregates fragmented user messages
+* Resets a soft debounce window (2.5s)
+* Explicitly sets `processing = false`
+
+**Key design choice:**
+The Ingestor never blocks on LLM execution. This allows ingestion to scale independently of model latency and cost.
+
+---
+
+### Workflow B — Processor
+
+**Primary constraint:** correctness
+
+* Triggered via 1s cron scan of expired debounce windows
+* Acquires a MUTEX via atomic state transition (`processing: false → true`)
+* Aggregates messages into a single `combinedText`
+* Executes intent bifurcation
+* Routes either to:
+
+  * API execution (transactional path), or
+  * Vector similarity matching (informational path)
+
+**Key design choice:**
+Cron + mutex locking was chosen over naive event-based triggers to guarantee exactly-once semantics under burst load.
+
+---
+
+### Workflow C — Janitor
+
+**Primary constraint:** hygiene and compliance
+
+* Runs on a 24h cycle
+* Purges stale session state documents
+* Ensures final session state is mirrored into immutable governance logs
+
+**Key design choice:**
+Session data is ephemeral; governance data is permanent. This separation enables GDPR compliance without sacrificing auditability.
+
+---
+
+## 4. The Identity Tuple as a Hard Silo
+
+The Identity Tuple `(tenantId, clientId, userId)` is not metadata — it is the **primary key of the system**.
+
+It enforces:
+
+* Tenant-level data isolation
+* Channel-level separation
+* User-level conversational continuity
+
+Unlike prompt-based isolation, SVMP enforces silos at the **database query layer**, making cross-tenant leakage structurally impossible.
+
+---
+
+## 5. Soft Debounce and Message Aggregation
+
+### The Problem
+
+Users do not send complete thoughts. They send bursts:
+
+> "Hi" → "I need help" → "with order #123"
+
+Naive systems respond to each fragment, creating hallucination loops and unnecessary LLM calls.
+
+### The Solution
+
+SVMP implements a **sliding soft debounce window**:
+
+* Each inbound message appends to a session buffer
+* Each message resets `debounceExpiresAt = now + 2.5s`
+* Processing only begins after silence
+
+**Outcome:**
+
+* 40–60% reduction in LLM calls
+* Higher semantic accuracy
+* Lower token spend
+
+---
+
+## 6. Intent Bifurcation (v4.1)
+
+SVMP explicitly separates **informational** and **transactional** intents before LLM execution.
+
+### Decision Hierarchy
+
+1. Tenant metadata check (Ecom/D2C enabled?)
+2. Intent classification
+3. OrderID presence validation (if required)
+
+### Routing
+
+* **Transactional intent:** API call to source of truth (Shopify/ERP/CRM)
+* **Informational intent:** Domain-filtered vector search + similarity gate
+
+This prevents *transactional hallucination* by construction.
+
+---
+
+## 7. Similarity Gate as a Governance Boundary
+
+LLMs are incentivized to answer even when uncertain.
+
+SVMP counters this by enforcing a **hard similarity threshold (≥ 0.75)**:
+
+* Query and knowledge base entries are embedded
+* Cosine similarity is computed
+* Below threshold = automation freezes
+
+This trades full automation for guaranteed correctness.
+
+---
+
+## 8. Governance Logs as a Forensic Ledger
+
+SVMP maintains an append-only `governance_logs` collection containing:
+
+* Aggregated input text
+* Similarity scores
+* Logic branch taken
+* Source attribution (document ID or API)
+* Identity Tuple
+
+This enables:
+
+* Post-mortem debugging
+* Regulatory auditability
+* Per-tenant explainability
+
+---
+
+## 9. Known Tradeoffs
+
+SVMP intentionally accepts the following costs:
+
+* Slight response latency due to debounce
+* Reduced automation rate under uncertainty
+* Higher architectural complexity than prompt-based systems
+
+These are accepted in exchange for deterministic behavior and reliability.
+
+---
+
+## 10. Forward Compatibility
+
+The architecture is designed to support:
+
+* Redis-based event triggering (replacing cron)
+* SLM offloading for low-complexity intents
+* Horizontal sharding by tenant cluster
+* Batched inference execution
+
+None of these require changes to the core invariants.
+
+---
+
+## Closing Note
+
+SVMP v4.1 is not optimized for demos. It is optimized for **failure containment**.
+
+The system assumes the LLM will eventually be wrong — and is architected so that when it is, the damage is bounded, explainable, and reversible.
