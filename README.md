@@ -23,22 +23,20 @@ For the past four development cycles, SVMP has worked on solving the reliability
 
 ```mermaid
 graph TD
-    User([User Message]) -->|Ingest (2.5s Debounce)| Ingestor[Workflow A: Ingestor]
+    User[User Message] -->|Ingest 2.5s Debounce| Ingestor[Workflow A Ingestor]
     Ingestor -->|Atomic Write| DB[(Session State)]
-    DB -->|Trigger| Processor[Workflow B: Processor]
+    DB -->|Trigger| Processor[Workflow B Processor]
     
-    subgraph "The Logic Fork (v4.1)"
-    Processor -->|Check Identity & Domain| Router{Intent Bifurcation}
+    subgraph Logic Fork v4.1
+    Processor -->|Check Identity and Tags| Router{Intent Bifurcation}
     
-    %% Path A: Transactional
-    Router -->|Order ID / Refund| PathA[Path A: Transactional]
-    PathA -->|API Call| ERP[Client ERP / Shopify]
-    ERP -->|Deterministic Resp| UI([User UI])
+    Router -->|Order ID or Refund| PathA[Path A Transactional]
+    PathA -->|API Call| ERP[Client ERP or Shopify]
+    ERP -->|Deterministic Resp| UI[User UI]
     
-    %% Path B: Informational
-    Router -->|General Query| PathB[Path B: Informational]
+    Router -->|General Query| PathB[Path B Informational]
     PathB -->|Vector Search| RAG[RAG Pipeline]
-    RAG -->|Similarity Check| Gate{Score >= 0.75?}
+    RAG -->|Similarity Check| Gate{Score High?}
     
     Gate -- Yes --> LLM[LLM Synthesis]
     Gate -- No --> Escalation[Human Agent]
