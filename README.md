@@ -57,8 +57,6 @@ graph TD
     LLM --> UI
     Escalation --> UI
 
-```
-
 ---
 
 ## Repository Structure
