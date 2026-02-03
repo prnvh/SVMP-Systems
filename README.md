@@ -29,43 +29,87 @@ SVMP v4.1 is built around the following non-negotiable constraints:
 
 ---
 
+## System Visualization (The Logic Fork)
+
+```mermaid
+graph TD
+    User([User Message]) -->|Ingest (2.5s Debounce)| Ingestor[Workflow A: Ingestor]
+    Ingestor -->|Atomic Write| DB[(Session State)]
+    DB -->|Trigger| Processor[Workflow B: Processor]
+    
+    subgraph "The Logic Fork (v4.1)"
+    Processor -->|Check Identity & Tags| Router{Intent Bifurcation}
+    
+    %% Path A: Transactional
+    Router -->|Order ID / Refund| PathA[Path A: Transactional]
+    PathA -->|API Call| ERP[Client ERP / Shopify]
+    ERP -->|Deterministic Resp| UI([User UI])
+    
+    %% Path B: Informational
+    Router -->|General Query| PathB[Path B: Informational]
+    PathB -->|Vector Search| RAG[RAG Pipeline]
+    RAG -->|Similarity Check| Gate{Score >= 0.75?}
+    
+    Gate -- Yes --> LLM[LLM Synthesis]
+    Gate -- No --> Escalation[Human Agent]
+    end
+    
+    LLM --> UI
+    Escalation --> UI
+
+```
+
+---
+
 ## Repository Structure
+
 This repository focuses on architecture, invariants, and failure containment rather than UI or deployment tooling.
 
-- `ARCHITECTURE.md` — system-level design and concurrency model
-- `FAILURE_CASES.md` — known failure modes and structural mitigations
-- `logic/` — decision engines, orchestration, and intent bifurcation
-- `workflows/` — maintenance cycles (Janitor) and cron jobs
-- `schemas/` — session, governance, and identity data models
+* `ARCHITECTURE.md` — system-level design and concurrency model
+* `FAILURE_CASES.md` — known failure modes and structural mitigations
+* `logic/` — decision engines, orchestration, and intent bifurcation
+* `workflows/` — maintenance cycles (Janitor) and cron jobs
+* `schemas/` — session, governance, and identity data models
 
 ---
 
 ## Architectural Evolution (Whitepapers)
 
 ### v4.1 Whitepaper (Implemented)
+
 **Status:** Production-Grade
 **Focus:** Intent Bifurcation & Forensic Auditability
-- **The Logic Fork:** Structural separation of Transactional (Deterministic) and Informational (Probabilistic) flows.
-- **Identity Locking:** Strict isolation enforced via Identity Tuples.
-- **Lifecycle Hygiene:** Automated "Janitor" workflows ensuring zero-retention in hot storage (>24h).
+
+* **The Logic Fork:** Structural separation of Transactional (Deterministic) and Informational (Probabilistic) flows.
+* **Identity Locking:** Strict isolation enforced via Identity Tuples.
+* **Lifecycle Hygiene:** Automated "Janitor" workflows ensuring zero-retention in hot storage (>24h).
 
 ### v4.0 Whitepaper (Conceptual Foundation)
+
 **Status:** Theoretical Baseline
 **Focus:** Session-Centricity
-- Defined the move from "Message-Centric" to "Session-Centric" architecture.
-- Established the "Soft-Debounce" pattern for multi-burst handling.
+
+* Defined the move from "Message-Centric" to "Session-Centric" architecture.
+* Established the "Soft-Debounce" pattern for multi-burst handling.
 
 ### v3.0 Whitepaper (Legacy)
+
 **Status:** Historical Reference
 **Focus:** Message-Centric
-- Best-effort orchestration with guardrails.
-- Retained here to document the rationale for the v4 rewrite.
+
+* Best-effort orchestration with guardrails.
+* Retained here to document the rationale for the v4 rewrite.
 
 ---
 
 ## Project Status
+
 SVMP v4.1 represents a production-oriented architecture validated through iterative design and adversarial reasoning.
 
-## Author
+## Authors
+
 **Pranav H**
-Lead Architect — SVMP Systems
+Lead Architect
+
+**Samrth D Magi**
+Product Lead & Systems Architect
