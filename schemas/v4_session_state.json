@@ -1,37 +1,45 @@
 {
   "collection": "session_state",
-  "version": "5.0",
-  "description": "Stateful session management with sliding-window debounce and mutex locking.",
+  "version": "5.1",
+  "description": "SVMP v4.1 Governance Schema: Implements strict multi-tenant isolation via identity tuples and 2.5s soft-debounce aggregation.",
   "document_structure": {
-    "userId": "string (Phone number or unique identifier)",
-    "clientId": "string (Integration channel ID)",
-    "tenantId": "string (Business organization ID)",
-    "status": "string (Current state: 'open' or 'closed')",
-    "debounceExpiresAt": "ISO-8601 Timestamp (Current Time + 15s for message aggregation)",
-    "messages": "array (List of incoming user messages in the current window)",
-    "processing": "boolean (Mutex Lock: true when Workflow B is active)"
-  },
-
-  
-  "example_document": 
-  {
-  "_id": "696552a7e849104a1b0b9f6b8",
-  "userId": "9740484194",
-  "clientId": "c_001",
-  "tenantId": "companyxyz",
-  "status": "open",
-  "createdAt": "2026-01-12T19:59:35.439Z",
-  "updatedAt": "2026-01-12T19:59:48.143Z",
-  "debounceExpiresAt": "2026-01-12T20:00:03.143Z",
-  "messages": [
-    {
-      "text": "hi",
-      "at": "2026-01-12T19:59:35.439Z"
+    "identity_tuple": {
+      "tenantId": "string (Business organization ID)",
+      "clientId": "string (Integration channel ID)",
+      "userId": "string (Phone number or unique identifier)"
     },
-    {
-      "text": "what do you guys do",
-      "at": "2026-01-12T19:59:48.143Z"
+    "governance_metadata": {
+      "processing": "boolean (MUTEX Lock: true when Workflow B is active)",
+      "debounceExpiresAt": "ISO-8601 Timestamp (Current Time + 2.5s for message aggregation)",
+      "lastSimilarityScore": "float (0.0 - 1.0, required for audit)",
+      "status": "string (pending | processed | escalated)"
+    },
+    "session_data": {
+      "messages": "array (List of incoming user messages in the current window)",
+      "aggregated_context": "string (The combined 'thought unit')"
     }
-  ],
-  "processing": true
+  },
+  "example_document": {
+    "_id": "696552a7e849104a1b0b9f6b8",
+    "identity_tuple": {
+      "tenantId": "companyxyz",
+      "clientId": "c_001",
+      "userId": "9740484194"
+    },
+    "governance_metadata": {
+      "processing": true,
+      "debounceExpiresAt": "2026-01-12T20:00:03.143Z",
+      "lastSimilarityScore": 0.82,
+      "status": "processed"
+    },
+    "session_data": {
+      "messages": [
+        { "text": "hi", "at": "2026-01-12T19:59:35.439Z" },
+        { "text": "what do you guys do", "at": "2026-01-12T19:59:36.143Z" }
+      ],
+      "aggregated_context": "hi what do you guys do"
+    },
+    "createdAt": "2026-01-12T19:59:35.439Z",
+    "updatedAt": "2026-01-12T20:00:05.143Z"
+  }
 }
