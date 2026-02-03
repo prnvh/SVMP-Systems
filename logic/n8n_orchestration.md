@@ -1,20 +1,31 @@
-# SVMP v4.0 | n8n Orchestration Logic
-
-The system is decoupled into three distinct n8n workflows to ensure high-availability and prevent race conditions.
+# SVMP v4.1 | n8n Orchestration Logic (Production)
 
 ## Workflow A: The Ingestor (Atomic Write)
-- **Role:** High-frequency ingestion.
-- **Logic:** Performs an atomic `$push` for messages and resets the sliding debounce window.
-- **Debounce Formula:** `debounceExpiresAt = Current_Time + 15s`.
+- **Role:** High-frequency ingestion & Soft Debounce.
+- **Debounce Formula:** `debounceExpiresAt = Current_Time + 2.5s`.
 - **Constraint:** This workflow never triggers an LLM; it only maintains state.
+- **Identity Enforcement:** Incoming payloads MUST contain `{ tenantId, domainId, userId }`.
 
-## Workflow B: The Processor (Deterministic Gate)
+## Workflow B: The Processor (The Logic Fork)
 - **Role:** Intent matching and AI synthesis.
-- **Polling:** Runs on a 20s cron cycle.
-- **Mutex Lock:** Immediately sets `processing: true` upon session pickup to prevent duplicate executions.
-- **Governance Gate:** Converts the aggregated session history into a vector and checks against the ≥0.75 threshold.
+- **Mutex Lock:** Immediately sets `processing: true`.
 
-## Workflow C: The Janitor (Maintenance)
-- **Role:** Cleanup and Governance Logging.
-- **Interval:** Nightly (12:00 AM).
-- **Archive:** Moves sessions with 24h of inactivity to `governance_logs` for compliance auditing.
+### The Logic Fork (Intent Bifurcation)
+#### Path A: Transactional (Hard Logic)
+- **Trigger:** Input contains Order Keywords (regex: `/#?(\d{4,})`).
+- **Action:** Bypass LLM. Execute HTTP Request to Client ERP.
+- **Confidence:** 100% (Deterministic).
+
+#### Path B: Informational (Soft Logic)
+- **Trigger:** No transactional intent detected.
+- **Action:** Execute RAG Pipeline (Vector Search).
+- **Critical Constraint (Multi-Cluster Isolation):**
+  - Vector Search Query **MUST** filter by: 
+    ```json
+    { "tenantId": session.tenantId, "domainId": session.domainId }
+    ```
+  - *This prevents Sales queries from retrieving Support documents.*
+
+- **Governance Gate:**
+  - If Similarity Score ≥ 0.75 → Generate Answer.
+  - If Similarity Score < 0.75 → **ESCALATE** to Human Agent.
