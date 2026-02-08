@@ -1,3 +1,5 @@
+# 🛡️ SVMP v4.1: Architecture & Governance Engine
+
 > **System Status:** Production Grade  
 > **Core Philosophy:** *Large Language Models (LLMs) are non-deterministic components and must be managed as untrusted workers inside a deterministic system.*
 
@@ -6,7 +8,6 @@ SVMP (Semantic Vector Mapping Protocol) is a **governance layer** designed to br
 ---
 
 ## 📑 Table of Contents
-- [01. Foundational Pillars (v4.1)](#01-foundational-pillars-v41)
 - [1. Design Premise](#1-design-premise)
 - [2. The Tri-Workflow Engine](#2-the-tri-workflow-engine)
 - [3. Architectural Invariants](#3-architectural-invariants)
@@ -15,15 +16,6 @@ SVMP (Semantic Vector Mapping Protocol) is a **governance layer** designed to br
 - [6. Intent Bifurcation & Governance](#6-intent-bifurcation--governance)
 - [7. Forensic Auditability](#7-forensic-auditability)
 - [8. Roadmap & Scalability](#8-roadmap--scalability)
-
----
-
-## 01. Foundational Pillars (v4.1)
-
-* [cite_start]**The Identity Frame**: A verified 3-dimensional coordinate system (`tenantId`, `clientId`, `userId`) that creates a strong barrier between data silos to guarantee 100% data privacy. [cite: 21, 22]
-* [cite_start]**Soft Debounce Queue**: A state-locking mechanism that merges fragmented "multi-burst" user inputs into a single "Complete Thought Unit," reducing LLM API overhead by 60%. [cite: 23, 24]
-* [cite_start]**Multi-Cluster Domain Isolation**: A triage layer that identifies user roles in milliseconds and locks the AI into specific high-relevancy data clusters (e.g., [ECOM] vs [SUPPORT]) to eliminate data noise. [cite: 27, 195, 197]
-* [cite_start]**Intent Logic Fork**: A structural bifurcation that separates informational RAG queries from transactional intents to eliminate "Transactional Hallucination" by bypassing the LLM for API-verified tasks. [cite: 25, 26]
 
 ---
 
@@ -57,7 +49,7 @@ SVMP decouples concerns into three independent workflows that scale horizontally
 ---
 
 ## 3. Architectural Invariants
-The system enforces these five non-negotiable rules structurally:
+The system enforces these non-negotiable rules structurally:
 
 | Invariant | Implementation |
 | :--- | :--- |
@@ -66,11 +58,15 @@ The system enforces these five non-negotiable rules structurally:
 | **Exactly-Once** | Atomic state transitions prevent double-processing. |
 | **Transactional Truth** | Real-world data (Orders/CRM) must be fetched via API, not LLM memory. |
 | **Default to Silence** | Similarity < 0.75 triggers immediate human escalation. |
+| **Domain Isolation** | `domainId` enforces cluster-level and data-level separation. |
+
 
 ---
 
 ## 4. The Identity Tuple (Hard Siloing)
-The Identity Tuple `(tenantId, clientId, userId)` is the **primary key** of the system. 
+The Identity Tuple `(tenantId, clientId, userId, domainId)` is the **primary key** of the system.
+
+`domainId` is resolved at ingestion time and permanently scopes all downstream orchestration and data access.
 
 Unlike prompt-based isolation—which is vulnerable to injection—SVMP enforces isolation at the **database query layer**. Cross-tenant data leakage is structurally impossible because the application cannot "see" data outside of its specific tuple.
 
@@ -89,13 +85,13 @@ Users rarely send complete thoughts in one message (e.g., *"Hi"* → *"I need he
 ## 6. Intent Bifurcation & Governance
 SVMP explicitly separates **Informational** and **Transactional** paths before any text generation occurs.
 
-### 🛣️ Transactional Path (Deterministic)
+### Transactional Path (Deterministic)
 If the Intent Classifier detects a need for an Order/User ID:
 * **Check:** Is the ID present in the `combinedText`?
 * **Action:** Fetch live data from Shopify/CRM API.
 * **Safety:** If ID is missing, the system asks for it and stops—no guessing.
 
-### 🧠 Informational Path (Probabilistic)
+### Informational Path (Probabilistic)
 Queries run through the **Vector Similarity Gate**:
 * **Cosine Similarity ≥ 0.75:** System auto-replies using verified Knowledge Base clusters.
 * **Cosine Similarity < 0.75:** System freezes and escalates to a human via Slack.
@@ -116,6 +112,21 @@ The architecture is designed to evolve without breaking core invariants:
 * **Redis Integration:** Transitioning from 1s Cron to Redis `SETEX` for sub-second latency.
 * **Horizontal Sharding:** Distributing `session_state` by `tenantId` clusters.
 * **Deterministic AI Middleware:** Exposing SVMP as a standardized API for external chatbot UIs.
+
+---
+
+## 9. Multi-Cluster Domain Isolation
+Each business domain (e.g., `ECOM`, `D2C`) operates within its own isolated execution and data cluster.
+
+**Isolation is enforced via:**
+- `domainId` embedded in the Identity Tuple
+- Domain-scoped databases and vector indexes
+- Domain-aware Logic Fork routing at orchestration time
+
+**Resulting Guarantees:**
+- Zero cross-domain data leakage
+- Independent scaling and failure containment
+- Deterministic routing even under shared tenants or users
 
 ---
 *© 2026 SVMP Systems.*

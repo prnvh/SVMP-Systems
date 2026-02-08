@@ -10,6 +10,15 @@
 - **Role:** Intent matching and AI synthesis.
 - **Mutex Lock:** Immediately sets `processing: true`.
 
+### Logic Fork (Domain-Aware Routing)
+All execution paths are first routed using `identity_tuple.domainId`.
+
+- **[ECOM]** → Use E-commerce databases, order services, and ECOM-scoped vector indexes
+- **[D2C]** → Use Direct-to-Consumer databases, CRM services, and D2C-scoped vector indexes
+
+No workflow step may access resources outside its assigned domain tag.
+
+
 ### The Logic Fork (Intent Bifurcation)
 #### Path A: Transactional (Hard Logic)
 - **Trigger:** Input contains Order Keywords (regex: `/#?(\d{4,})`).

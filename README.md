@@ -12,7 +12,7 @@ SVMP Systems is a reference implementation of a state-aware orchestration layer 
 For the past four development cycles, SVMP has worked on solving the reliability gap in probabilistic AI.
 **The Foundational Pillars (v4.1):**
 
-1.  **The Identity Tuple:** A 3-dimensional coordinate system (`tenantId`, `clientId`, `userId`) that guarantees 100% data privacy between organizations.
+1.  **The Identity Tuple:** A 3-dimensional coordinate system (`tenantId`, `domainId`, `userId`) that guarantees data isolation across tenants *and* business domains.
 2.  **Dynamic Intent Aggregation:** A **Soft Debounce Queue (2.5s)** that merges fragmented user inputs ("multi-bursts") into a single Complete Thought Unit, reducing API overhead by 60%.
 3.  **Multi-Cluster Domain Isolation:** Data is now siloed not just by Tenant, but by **Domain** (e.g., `ecom_001` vs `support_002`), ensuring a sales query never retrieves technical support documents.
 4.  **Intent Bifurcation:** A "Logic Fork" that structurally separates **Informational** queries (RAG) from **Transactional** intents (Orders). Transactional queries bypass the LLM entirely to eliminate hallucination.
@@ -46,6 +46,9 @@ graph TD
     Escalation --> UI
 
 ```
+Before intent bifurcation occurs, all requests are routed through a domain-aware Logic Fork.
+The fork enforces strict resource access using `identity_tuple.domainId`
+(e.g., [ECOM] or [D2C]) before any transactional or RAG logic is executed.
 
 ---
 
@@ -79,7 +82,9 @@ This repository serves as the technical specification for the v4.1 architecture.
 * `ARCHITECTURE.md` — Deep dive into invariants and concurrency models.
 * `logic/` — Decision engines (`n8n_orchestration`) and bifurcation logic.
 * `workflows/` — Maintenance cycles (The Janitor).
-* `schemas/` — JSON definitions for Sessions, Tenants, and Knowledge Base.
+* `schemas/` — JSON definitions for Sessions, Identity Tuples, and Domain-Scoped Knowledge Base.
+* Routing within the Logic Fork is domain-aware and enforced using `domainId` tags (e.g., [ECOM], [D2C]).
+
 
 ---
 
