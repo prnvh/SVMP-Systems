@@ -1,49 +1,16 @@
 {
-  "bsonType": "object",
-  "title": "v4.1 Session State (Production)",
-  "required": ["identity_tuple", "status", "debounceExpiresAt"],
-  "properties": {
-    "identity_tuple": {
-      "bsonType": "object",
-      "required": ["tenantId", "domainId", "userId"],
-      "properties": {
-        "tenantId": {
-          "bsonType": "string",
-          "description": "Organization Identifier (e.g., Niyomilan)"
-        },
-        "domainId": {
-          "bsonType": "string",
-          "description": "Cluster Routing ID (e.g., ecom_001, support_002)"
-        },
-        "userId": {
-          "bsonType": "string",
-          "description": "End-user identifier"
-        }
-      }
-    },
-    "messages": {
-      "bsonType": "array",
-      "description": "Aggregated thought unit from soft-debounce",
-      "items": {
-        "bsonType": "object",
-        "required": ["role", "content", "timestamp"],
-        "properties": {
-          "role": { "enum": ["user", "system", "assistant"] },
-          "content": { "bsonType": "string" },
-          "timestamp": { "bsonType": "date" }
-        }
-      }
-    },
-    "debounceExpiresAt": {
-      "bsonType": "date",
-      "description": "The exact time when the 2.5s window closes"
-    },
-    "status": {
-      "enum": ["accumulating", "processing", "completed", "archived"]
-    },
-    "similarity_score": {
-      "bsonType": "double",
-      "description": "Forensic audit score (must be >= 0.75)"
+  "session_id": "ObjectId",
+  "tenantId": "String",
+  "domainId": "String",
+  "intent_id": "String",
+  "messages": [
+    {
+      "text": "String",
+      "at": "Timestamp"
     }
-  }
+  ],
+  "debounceExpiresAt": "Timestamp",
+  "similarity_score": "Number",
+  "status": "pending | processed",
+  "logic_branch": "transactional | informational"
 }
