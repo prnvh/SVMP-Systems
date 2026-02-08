@@ -1,0 +1,29 @@
+{
+  "bsonType": "object",
+  "title": "v4.1 Governance Ledger (Forensic Audit)",
+  "required": ["log_id", "timestamp", "identity_tuple", "event_metadata", "outcome"],
+  "properties": {
+    "log_id": { "bsonType": "objectId" },
+    "timestamp": { "bsonType": "date" },
+    "identity_tuple": {
+      "bsonType": "object",
+      "required": ["tenantId", "clientId", "userId", "domainId"],
+      "properties": {
+        "tenantId": { "bsonType": "string" },
+        "clientId": { "bsonType": "string" },
+        "userId": { "bsonType": "string" },
+        "domainId": { "bsonType": "string" }
+      }
+    },
+    "event_metadata": {
+      "bsonType": "object",
+      "properties": {
+        "input_vector": { "bsonType": "string" },
+        "similarity_confidence": { "bsonType": "double" },
+        "logic_branch": { "enum": ["transactional", "informational"] },
+        "source_attribution": { "bsonType": "string" }
+      }
+    },
+    "outcome": { "enum": ["responded", "escalated"] }
+  }
+}

@@ -1,32 +1,28 @@
 {
   "bsonType": "object",
-  "title": "v4.1 Knowledge Base (RAG Source)",
-  "required": ["tenantId", "domainId", "question", "vector_embedding"],
+  "required": ["tenantId", "domainId", "question", "answer", "vector_embedding"],
   "properties": {
-    "tenantId": {
+    "_id": { "bsonType": "objectId" },
+    "tenantId": { 
       "bsonType": "string",
-      "description": "Data Silo Owner"
+      "description": "Hard-bind to client (e.g., Niyomilan)" 
     },
-    "domainId": {
+    "domainId": { 
       "bsonType": "string",
-      "description": "Logic Cluster (sales vs support)"
+      "description": "Cluster routing (e.g., sales, support)" 
     },
-    "question": {
+    "question": { 
       "bsonType": "string",
-      "description": "Grounded user query"
+      "description": "Grounded, human-verified query" 
     },
-    "answer": {
+    "answer": { 
       "bsonType": "string",
-      "description": "Deterministic factual response"
+      "description": "Deterministic factual response" 
     },
-    "tags": {
+    "tags": { 
       "bsonType": "array",
       "items": { "bsonType": "string" }
     },
-    "vector_embedding": {
-      "bsonType": "array",
-      "items": { "bsonType": "double" },
-      "description": "1536-dim vector for similarity search"
-    }
+    "updatedAt": { "bsonType": "date" }
   }
 }
