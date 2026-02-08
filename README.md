@@ -81,7 +81,7 @@ This repository serves as the technical specification for the v4.1 architecture.
 
 * `ARCHITECTURE.md` — Deep dive into invariants and concurrency models.
 * `logic/` — Decision engines (`n8n_orchestration`) and bifurcation logic.
-* `workflows/` — Maintenance cycles (The Janitor).
+* `workflows/` — Core Logic (Ingestor, Processor) & Maintenance (Janitor).
 * `schemas/` — JSON definitions for Sessions, Identity Tuples, and Domain-Scoped Knowledge Base.
 * Routing within the Logic Fork is domain-aware and enforced using `domainId` tags (e.g., [ECOM], [D2C]).
 
