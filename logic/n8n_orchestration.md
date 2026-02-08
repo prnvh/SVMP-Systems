@@ -1,40 +1,29 @@
-# SVMP v4.1 | n8n Orchestration Logic (Production)
+# n8n Orchestration Logic (v4.1)
 
-## Workflow A: The Ingestor (Atomic Write)
-- **Role:** High-frequency ingestion & Soft Debounce.
-- **Debounce Formula:** `debounceExpiresAt = Current_Time + 2.5s`.
-- **Constraint:** This workflow never triggers an LLM; it only maintains state.
-- **Identity Enforcement:** Incoming payloads MUST contain `{ tenantId, domainId, userId }`.
+## 1. The Intent Logic Fork
+In v4.1, the system implements a **Conditional Execution Pipeline** to separate concerns before the LLM is involved.
 
-## Workflow B: The Processor (The Logic Fork)
-- **Role:** Intent matching and AI synthesis.
-- **Mutex Lock:** Immediately sets `processing: true`.
+### Step 1: Database-Level Trigger
+[cite_start]The workflow begins by checking the `tenants` collection for specific tags[cite: 292]:
+* [cite_start]**[ECOM] / [D2C]:** Activates the High Precision Intent Matcher[cite: 293].
+* [cite_start]**Standard:** Routes directly to the v4.0 Similarity Gate (RAG)[cite: 294].
 
-### Logic Fork (Domain-Aware Routing)
-All execution paths are first routed using `identity_tuple.domainId`.
+### Step 2: The Binary Node
+For tagged tenants, the system evaluates the query:
 
-- **[ECOM]** → Use E-commerce databases, order services, and ECOM-scoped vector indexes
-- **[D2C]** → Use Direct-to-Consumer databases, CRM services, and D2C-scoped vector indexes
+#### A. Transactional Path (Deterministic)
+* [cite_start]**Trigger:** Keywords like "Tracking", "Order", "Cancel"[cite: 296].
+* **Action:** 1. Checks `session_state` for a validated `orderId`.
+  2. [cite_start]**Bypasses LLM:** Makes a direct API call to Shopify/ERP[cite: 297].
+* [cite_start]**Outcome:** Zero hallucination for logistics/status queries[cite: 300].
 
-No workflow step may access resources outside its assigned domain tag.
+#### B. Informational Path (Probabilistic)
+* **Trigger:** General inquiries (e.g., "How do I return?", "Shipping policy").
+* **Action:**
+  1. [cite_start]Filters Knowledge Base by `domainId`[cite: 298].
+  2. [cite_start]Applies **Similarity Gate >= 0.75**[cite: 298].
+* **Outcome:** RAG-based response or Human Escalation if confidence is low.
 
-
-### The Logic Fork (Intent Bifurcation)
-#### Path A: Transactional (Hard Logic)
-- **Trigger:** Input contains Order Keywords (regex: `/#?(\d{4,})`).
-- **Action:** Bypass LLM. Execute HTTP Request to Client ERP.
-- **Confidence:** 100% (Deterministic).
-
-#### Path B: Informational (Soft Logic)
-- **Trigger:** No transactional intent detected.
-- **Action:** Execute RAG Pipeline (Vector Search).
-- **Critical Constraint (Multi-Cluster Isolation):**
-  - Vector Search Query **MUST** filter by: 
-    ```json
-    { "tenantId": session.tenantId, "domainId": session.domainId }
-    ```
-  - *This prevents Sales queries from retrieving Support documents.*
-
-- **Governance Gate:**
-  - If Similarity Score ≥ 0.75 → Generate Answer.
-  - If Similarity Score < 0.75 → **ESCALATE** to Human Agent.
+## 2. Global Invariants
+* [cite_start]**Mutex Locking:** All flows respect the `processing: true` lock to prevent race conditions[cite: 233].
+* [cite_start]**Governance Logging:** Every decision (Logic Branch A vs B) is written to the immutable ledger[cite: 281].
