@@ -1,5 +1,3 @@
-# 🛡️ SVMP v4.1: Architecture & Governance Engine
-
 > **System Status:** Production Grade  
 > **Core Philosophy:** *Large Language Models (LLMs) are non-deterministic components and must be managed as untrusted workers inside a deterministic system.*
 
@@ -8,6 +6,7 @@ SVMP (Semantic Vector Mapping Protocol) is a **governance layer** designed to br
 ---
 
 ## 📑 Table of Contents
+- [01. Foundational Pillars (v4.1)](#01-foundational-pillars-v41)
 - [1. Design Premise](#1-design-premise)
 - [2. The Tri-Workflow Engine](#2-the-tri-workflow-engine)
 - [3. Architectural Invariants](#3-architectural-invariants)
@@ -16,6 +15,15 @@ SVMP (Semantic Vector Mapping Protocol) is a **governance layer** designed to br
 - [6. Intent Bifurcation & Governance](#6-intent-bifurcation--governance)
 - [7. Forensic Auditability](#7-forensic-auditability)
 - [8. Roadmap & Scalability](#8-roadmap--scalability)
+
+---
+
+## 01. Foundational Pillars (v4.1)
+
+* [cite_start]**The Identity Frame**: A verified 3-dimensional coordinate system (`tenantId`, `clientId`, `userId`) that creates a strong barrier between data silos to guarantee 100% data privacy. [cite: 21, 22]
+* [cite_start]**Soft Debounce Queue**: A state-locking mechanism that merges fragmented "multi-burst" user inputs into a single "Complete Thought Unit," reducing LLM API overhead by 60%. [cite: 23, 24]
+* [cite_start]**Multi-Cluster Domain Isolation**: A triage layer that identifies user roles in milliseconds and locks the AI into specific high-relevancy data clusters (e.g., [ECOM] vs [SUPPORT]) to eliminate data noise. [cite: 27, 195, 197]
+* [cite_start]**Intent Logic Fork**: A structural bifurcation that separates informational RAG queries from transactional intents to eliminate "Transactional Hallucination" by bypassing the LLM for API-verified tasks. [cite: 25, 26]
 
 ---
 
@@ -110,4 +118,4 @@ The architecture is designed to evolve without breaking core invariants:
 * **Deterministic AI Middleware:** Exposing SVMP as a standardized API for external chatbot UIs.
 
 ---
-*© 2026 SVMP Systems. Authored by Pranav H.*
+*© 2026 SVMP Systems.*
